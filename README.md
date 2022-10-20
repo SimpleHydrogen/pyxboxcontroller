@@ -11,7 +11,7 @@ Connect to the controller with id (starting at 0) using:
 ## Getting the current state of the controller
 The current state of the controller can be gotten with:
 `state:XboxControllerState = controller.state`
-This returns a `XboxControllerState` object.
+This returns an `XboxControllerState` object.
 
 
 Some examples of accessing the states' values:
@@ -22,5 +22,5 @@ x_pressed:bool = state.x
 lb_pressed:bool = state.lb
 ```
 
-Alternately buttons can be gotten with:
-` button_pressed:bool = state.buttons["button"]`
+Alternately the state of the button e.g. x can be gotten with:
+` button_pressed:bool = state.buttons["x"]`
