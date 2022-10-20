@@ -15,10 +15,12 @@ This returns a `XboxControllerState` object.
 
 
 Some examples of accessing the states' values:
-`left_thumbstick_x:float = state.l_thumb_x`
-` right_thumbstick_y:float = state.r_thumb_y`
-` x_pressed:bool = state.x`
-` lb_pressed:bool = state.lb`
+```
+left_thumbstick_x:float = state.l_thumb_x
+right_thumbstick_y:float = state.r_thumb_y
+x_pressed:bool = state.x
+lb_pressed:bool = state.lb
+```
 
 Alternately buttons can be gotten with:
 ` button_pressed:bool = state.buttons["button"]`
