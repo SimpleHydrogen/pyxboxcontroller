@@ -6,7 +6,11 @@ http://msdn.microsoft.com/en-gb/library/windows/desktop/ee417001%28v=vs.85%29.as
 - Dan Forbes - Mid October 2022
 """
 import ctypes
+
+from typing_extensions import Self
+
 import pyxboxcontroller.XInput as XInput
+
 
 class XboxControllerState:
     """
@@ -21,7 +25,7 @@ class XboxControllerState:
     >>> button_pressed:bool = state.buttons["button"]
     """
     
-    # Button map represents the bitmasks for each button encoded in gamepad.buttons. 
+    # Button map represents the bitmasks for accessing each button encoded in gamepad.buttons. 
     # See https://learn.microsoft.com/en-us/windows/win32/api/xinput/ns-xinput-xinput_gamepad
     _BUTTON_MAP:dict[str, int] = {
     "dpad_up" : 1,
@@ -41,15 +45,15 @@ class XboxControllerState:
     }
        
     def __init__(self, state:XInput.XINPUT_STATE):
+        # Get gamepad struct from XInput state
         gamepad:XInput.XINPUT_GAMEPAD = state.gamepad
-        buttons:int = gamepad.buttons
-
+        
         # # NOTE FOR DEBUG
         # if buttons not in self.BUTTON_MAP.values():
         #     print(f"Unknown button or combination: {buttons}")
         
         # Buttons
-        self.buttons = {btn : self._get_button_state(btn, buttons) for btn in self._BUTTON_MAP}
+        self.buttons = {btn : self._get_button_state(btn, gamepad.buttons) for btn in self._BUTTON_MAP}
         
         # Thumbsticks
         # TODO add deadzone checking
@@ -62,6 +66,21 @@ class XboxControllerState:
         # Triggers
         self.l_trigger:float = round(gamepad.left_trigger / 255., 4)
         self.r_trigger:float = round(gamepad.right_trigger / 255., 4)
+    
+    @classmethod
+    def default_state(cls) -> Self:
+        """Returns a default state of XboxControllerState"""
+        class XInputSpoofState:
+            """Spoof an XInput state packet"""
+            class gamepad:
+                buttons:int = 0
+                l_thumb_x:float = 0.
+                l_thumb_y:float = 0.
+                r_thumb_x:float = 0.
+                r_thumb_y:float = 0.
+                left_trigger:float = 0.
+                right_trigger:float = 0.
+        return cls(XInputSpoofState()) 
     
     def __repr__(self) -> str:
         return f"Buttons:{self.buttons}, Left thumbstick: {(self.l_thumb_x, self.l_thumb_y)}, Right thumbstick: {(self.r_thumb_x, self.r_thumb_y)}, Left trigger: {self.l_trigger}, Right trigger: {self.r_trigger}"
@@ -134,7 +153,7 @@ class XboxController:
         self.id = controller_id
         self._state = XInput.XINPUT_STATE()
         self._last_packet_number:int = -1
-        self._last_state:XboxControllerState = None
+        self._last_state:XboxControllerState = XboxControllerState.default_state()
         
     @property
     def state(self) -> XboxControllerState:
