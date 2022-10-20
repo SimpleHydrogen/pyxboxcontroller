@@ -15,45 +15,50 @@ import pyxboxcontroller.XInput as XInput
 class XboxControllerState:
     """
     Parses an XInputState Struct into a sensible representation.\n
+    
     Some examples of accessing the states' values:\n
     >>> left_thumbstick_x = state.l_thumb_x
     >>> right_thumbstick_y = state.r_thumb_y
     >>> x_pressed:bool = state.x
     >>> lb_pressed:bool = state.lb
     \n
-    Alternately buttons can be gotten with:\n
-    >>> button_pressed:bool = state.buttons["button"]
+    Alternately buttons (e.g. "a") can be gotten with:\n
+    >>> a_pressed:bool = state.buttons["a"]
+    
+    Check the packet number with:
+    >>> state.packet_number
     """
     
     # Button map represents the bitmasks for accessing each button encoded in gamepad.buttons. 
     # See https://learn.microsoft.com/en-us/windows/win32/api/xinput/ns-xinput-xinput_gamepad
     _BUTTON_MAP:dict[str, int] = {
-    "dpad_up" : 1,
-    "dpad_down" : 2,
-    "dpad_left" : 4,
-    "dpad_right" : 8,
-    "start" : 16,
-    "select": 32,
-    "L3" : 64,
-    "R3" : 128,
-    "LB": 256,
-    "RB" : 512,
-    "a":4096,
-    "b":8192,
-    "x":16384,
-    "y":32768,  
+        "dpad_up" : 1,
+        "dpad_down" : 2,
+        "dpad_left" : 4,
+        "dpad_right" : 8,
+        "start" : 16,
+        "select": 32,
+        "L3" : 64,
+        "R3" : 128,
+        "LB": 256,
+        "RB" : 512,
+        "a":4096,
+        "b":8192,
+        "x":16384,
+        "y":32768,  
     }
        
     def __init__(self, state:XInput.XINPUT_STATE):
         # Get gamepad struct from XInput state
+        self.packet_number = state.packet_number
         gamepad:XInput.XINPUT_GAMEPAD = state.gamepad
         
         # # NOTE FOR DEBUG
         # if buttons not in self.BUTTON_MAP.values():
         #     print(f"Unknown button or combination: {buttons}")
         
-        # Buttons
-        self.buttons = {btn : self._get_button_state(btn, gamepad.buttons) for btn in self._BUTTON_MAP}
+        # Get states of each button
+        self.buttons:dict[str,bool] = {btn : self._get_button_state(btn, gamepad.buttons) for btn in self._BUTTON_MAP}
         
         # Thumbsticks
         # TODO add deadzone checking
@@ -72,6 +77,7 @@ class XboxControllerState:
         """Returns a default state of XboxControllerState"""
         class XInputSpoofState:
             """Spoof an XInput state packet"""
+            packet_number:int = -1
             class gamepad:
                 buttons:int = 0
                 l_thumb_x:float = 0.
@@ -83,7 +89,7 @@ class XboxControllerState:
         return cls(XInputSpoofState()) 
     
     def __repr__(self) -> str:
-        return f"Buttons:{self.buttons}, Left thumbstick: {(self.l_thumb_x, self.l_thumb_y)}, Right thumbstick: {(self.r_thumb_x, self.r_thumb_y)}, Left trigger: {self.l_trigger}, Right trigger: {self.r_trigger}"
+        return f"Packet number:{self.packet_number}, Buttons:{self.buttons}, Left thumbstick: {(self.l_thumb_x, self.l_thumb_y)}, Right thumbstick: {(self.r_thumb_x, self.r_thumb_y)}, Left trigger: {self.l_trigger}, Right trigger: {self.r_trigger}"
 
     def _get_button_state(self, button:str, buttons:int) -> bool:
         """Returns a boolean value for the given button based on the bitwise and of its bitmask and the buttons number"""
@@ -91,7 +97,7 @@ class XboxControllerState:
         pressed:bool = (mask & buttons) != 0
         return pressed
     
-    # Individual button helper functions
+    # Individual button getters
     @property
     def a(self) -> bool:
         return self.buttons["a"]
@@ -138,10 +144,20 @@ class XboxControllerState:
 
 class XboxController:
     """
-    Try id=0 when only one controller is connected. 
+    Provides access to the current state of a connected xbox controller.\n
+    
+    Connect to a controller with:
     >>> my_controller = XboxController(id)
-    The state of the controller at the requested time is given by:
-    >>> my_controller.state
+    Try id=0 to connect to the 1st controller connected\n
+    
+    The state of the controller is given by:
+    >>> state = my_controller.state
+    state is an XboxController object
+
+    The state of a button (e.g. "x") for that given state can be gotten with:
+    >>> x_pressed:bool = state.x
+    
+    Raises a RuntimeError when communication with controller fails.
     """
     
     # TODO
@@ -167,16 +183,15 @@ class XboxController:
             
             case XInput.ErrorCodes.SUCCESS:
                 packet_number = self._state.packet_number  # Get current packet number        
+                
                 if (packet_number == self._last_packet_number):  # No packets from controller since last call
                     return self._last_state
+                
                 else:  # Change in controller state
-                    # Convert XInput struct into sensible response
+                    # Convert XInput state struct into sensible response
                     new_state = XboxControllerState(self._state)  
-                    
                     # Recall latest packet
-                    self._last_packet_number = packet_number
-                    self._last_state = new_state
-                    
+                    self._last_packet_number, self._last_state = packet_number, new_state
                     return new_state
                     
             case XInput.ErrorCodes.NOT_CONNECTED:
