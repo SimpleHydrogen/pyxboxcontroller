@@ -14,9 +14,9 @@ controller = XboxController(id=0)
 try:
     # Polling loop
     while True:
+        
         # Get current state of controller
         state:XboxControllerState = controller.state
-        
         print(state)
         
         # Check to exit loop
