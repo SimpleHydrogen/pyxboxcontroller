@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.4"
+VERSION = "0.4.11"
 DESCRIPTION = 'This module allow simple access to the current state of connected Xbox controllers on Windows via the XInput library(https://learn.microsoft.com/en-gb/windows/win32/xinput/getting-started-with-xinput).'
 
 setup(name='pyxboxcontroller',
@@ -14,7 +14,7 @@ setup(name='pyxboxcontroller',
     keywords = ["xbox controller", "XInput", "xbox", "controller", "python"],
     long_description = "See github for more details: (https://github.com/SimpleHydrogen/pyxboxcontroller)",
     classifiers = [
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows :: Windows 11",
     ]

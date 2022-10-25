@@ -7,7 +7,7 @@ http://msdn.microsoft.com/en-gb/library/windows/desktop/ee417001%28v=vs.85%29.as
 """
 import ctypes
 
-from typing_extensions import Self
+from typing import Self
 
 import pyxboxcontroller.XInput as XInput
 
