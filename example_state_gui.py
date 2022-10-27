@@ -14,7 +14,6 @@ class DisplayState(ttk.Frame):
     """ Displays the current state of the given xbox controller. Press start to close"""
     def __init__(self, controller:XboxController, root: tk.Tk | None = None):
         tk.Frame.__init__(self, root, padx=30, pady=15)
-        # self.master.geometry("260x420")
         self.master.title("pyxboxcontroller")
         self.master.resizable(False, False)
         self.grid()
@@ -72,7 +71,6 @@ class DisplayState(ttk.Frame):
         # Packet number
         self.packet_number_label = ttk.Label(self, text="Packet Number: -1")
         self.packet_number_label.grid(column=c, row=r)
-        # c += 1
         r += 1
         
         # Triggers
@@ -87,15 +85,12 @@ class DisplayState(ttk.Frame):
         self.r_thumbstick.grid(row=r, column=c)
         r += 1
         
-        # c += 1
-        
         # Labels for buttons 
         self.button_labels = [ttk.Label(self, text=f"{button} : {pressed}") 
                                for button, pressed in XboxControllerState.buttons.items()]
         for btn in self.button_labels: 
             btn.grid(row=r, column=c)
             r += 1
-        # c += 1
         
         # Exit Button
         ttk.Button(self, text="Exit", command=self.close).grid(row=r, column=c)
@@ -107,6 +102,7 @@ if __name__ == "__main__":
     try:
         controller = XboxController(0)  # Connect to controller
     
+        # Create GUI
         gui = DisplayState(controller)
         gui.run()
     
