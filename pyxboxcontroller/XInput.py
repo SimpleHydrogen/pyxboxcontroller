@@ -25,6 +25,13 @@ class XINPUT_STATE(ctypes.Structure):
         ('gamepad', XINPUT_GAMEPAD),
     ]
 
+class Codes:
+        NOT_CONNECTED = 1167
+        SUCCESS = 0
+        
+def GetState(id:int, state:XINPUT_STATE) -> Codes:
+    return XINPUT_DLL.XInputGetState(id, ctypes.byref(state))
+
 # class XINPUT_VIBRATION(ctypes.Structure):
 #     _fields_ = [("wLeftMotorSpeed", ctypes.c_ushort),
 #                 ("wRightMotorSpeed", ctypes.c_ushort)]
@@ -33,6 +40,3 @@ class XINPUT_STATE(ctypes.Structure):
 #     _fields_ = [("BatteryType", ctypes.c_ubyte),
 #                 ("BatteryLevel", ctypes.c_ubyte)]
     
-class ErrorCodes:
-        NOT_CONNECTED = 1167
-        SUCCESS = 0

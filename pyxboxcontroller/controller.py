@@ -5,9 +5,7 @@ http://msdn.microsoft.com/en-gb/library/windows/desktop/ee417001%28v=vs.85%29.as
 
 - Dan Forbes - Mid October 2022
 """
-import ctypes
-
-from typing import Self
+from functools import cache
 
 import pyxboxcontroller.XInput as XInput
 
@@ -30,7 +28,7 @@ class XboxControllerState:
     """
     
     # Button map represents the bitmasks for accessing each button encoded in gamepad.buttons. 
-    # See https://learn.microsoft.com/en-us/windows/win32/api/xinput/ns-xinput-xinput_gamepad
+    # See https://learn.microsoft.com/en-us/windows/win32/api/xinput/ns-xinput-xinput_gamepad, as of October 2022
     _BUTTON_MAP:dict[str, int] = {
         "dpad_up" : 1,
         "dpad_down" : 2,
@@ -50,7 +48,7 @@ class XboxControllerState:
        
     def __init__(self, state:XInput.XINPUT_STATE):
         # Get gamepad struct from XInput state
-        self.packet_number = state.packet_number
+        self.packet_number:int = state.packet_number
         gamepad:XInput.XINPUT_GAMEPAD = state.gamepad
         
         # # NOTE FOR DEBUG
@@ -58,8 +56,9 @@ class XboxControllerState:
         #     print(f"Unknown button or combination: {buttons}")
         
         # Get states of each button
-        self.buttons:dict[str,bool] = {btn : self._get_button_state(btn, gamepad.buttons) for btn in self._BUTTON_MAP}
-        
+        self.buttons:dict[str,bool] = {btn : self._get_button_state(btn, gamepad.buttons) 
+                                        for btn in self._BUTTON_MAP}
+    
         # Thumbsticks
         # TODO add deadzone checking
         # round to 4 decimal places, ignores the error with converting signed 32-bit int (-32768 to 32767) to float (-1.0 to 1.0)
@@ -73,7 +72,7 @@ class XboxControllerState:
         self.r_trigger:float = round(gamepad.right_trigger / 255., 4)
     
     @classmethod
-    def default_state(cls) -> Self:
+    def default_state(cls):
         """Returns a default state of XboxControllerState"""
         class XInputSpoofState:
             """Spoof an XInput state packet"""
@@ -92,11 +91,27 @@ class XboxControllerState:
         return f"Packet number:{self.packet_number}, Buttons:{self.buttons}, Left thumbstick: {(self.l_thumb_x, self.l_thumb_y)}, Right thumbstick: {(self.r_thumb_x, self.r_thumb_y)}, Left trigger: {self.l_trigger}, Right trigger: {self.r_trigger}"
 
     def _get_button_state(self, button:str, buttons:int) -> bool:
-        """Returns a boolean value for the given button based on the bitwise and of its bitmask and the buttons number"""
+        """Returns True or False if the given button was pressed.
+        bitwise and (&) of the bitmask and gamepad.buttons number"""
         mask:int = self._BUTTON_MAP[button]
         pressed:bool = (mask & buttons) != 0
         return pressed
     
+    # Thumbstick getter
+    @property
+    def l_thumb(self) -> tuple[float,float]:
+        """Returns the state of (X,Y) for the left thumbstick"""
+        return (self.l_thumb_x, self.l_thumb_y)
+    @property
+    def r_thumb(self) -> tuple[float,float]:
+        """Returns the state of (X,Y) for the right thumbstick"""
+        return (self.r_thumb_x, self.r_thumb_y)
+    
+    @property
+    def triggers(self) -> tuple[float, float]:
+        """Returns the position of triggers (L,R)"""
+        return (self.l_trigger, self.r_trigger)
+        
     # Individual button getters
     @property
     def a(self) -> bool:
@@ -140,6 +155,12 @@ class XboxControllerState:
     @property
     def r3(self) -> bool:
         return self.buttons["r3"]
+    
+    @classmethod
+    @property
+    @cache
+    def buttons(cls) -> dict[str,bool]:
+        return {btn:False for btn in cls._BUTTON_MAP}
 
 
 class XboxController:
@@ -152,7 +173,7 @@ class XboxController:
     
     The state of the controller is given by:
     >>> state = my_controller.state
-    state is an XboxController object
+    state is an XboxControllerState object
 
     The state of a button (e.g. "x") for that given state can be gotten with:
     >>> x_pressed:bool = state.x
@@ -164,7 +185,7 @@ class XboxController:
     # Deadzones
     # Rumble
     # Battery info
-        
+    
     def __init__(self, controller_id:int):
         self.id = controller_id
         self._state = XInput.XINPUT_STATE()
@@ -176,12 +197,15 @@ class XboxController:
         """Get the current state of the controller"""
 
         # Get controller state from XInput
-        res = XInput.XINPUT_DLL.XInputGetState(self.id, ctypes.byref(self._state))
+        # res = XInput.XINPUT_DLL.XInputGetState(self.id, ctypes.byref(self._state))
+        res = XInput.GetState(self.id, self._state)
         
         # Handle response from XInput
         match res:
+            # case _ if True:  # NOTE DEBUG
+            #     raise ConnectionError(f"No controller connected with id: {self.id}")  # NOTE DEBUG
             
-            case XInput.ErrorCodes.SUCCESS:
+            case XInput.Codes.SUCCESS:
                 packet_number = self._state.packet_number  # Get current packet number        
                 
                 if (packet_number == self._last_packet_number):  # No packets from controller since last call
@@ -194,8 +218,10 @@ class XboxController:
                     self._last_packet_number, self._last_state = packet_number, new_state
                     return new_state
                     
-            case XInput.ErrorCodes.NOT_CONNECTED:
-                raise RuntimeError(f"No controller connected with id: {self.id}")
+            case XInput.Codes.NOT_CONNECTED:
+                e = ConnectionError(f"No controller connected with id: {self.id}")
+                e.add_note(f"Last packet: {self._last_packet_number}")
+                raise e
             
             case _ as exc:
-                raise RuntimeError(f"Unknown error {res} attempting to get state of device {self.id}") from exc      
+                raise RuntimeError(f"Unknown error {res} attempting to get state of device {self.id}", exc)

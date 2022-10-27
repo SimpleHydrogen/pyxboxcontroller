@@ -5,20 +5,16 @@ Press start button to exit!
 - Dan Forbes Mid October 2022
 """
 import time
-
 from pyxboxcontroller import XboxController, XboxControllerState
 
+# Loop parameters
+REFRESH_INTERVAL:float = 0.1
+
 if __name__ == "__main__":
-    # Connect to controller
-    controller = XboxController(0)
-
-    # Loop parameters
-    REFRESH_INTERVAL:float = 0.1
-
-    # Polling loop
+    controller = XboxController(0)  # Connect to controller
+    
     try:
-        while True:
-            
+        while True:            
             # Get current state of controller
             state:XboxControllerState = controller.state
             print(state)
@@ -29,7 +25,11 @@ if __name__ == "__main__":
                 break
             
             time.sleep(REFRESH_INTERVAL)
-            
+        
+    # Controller not connected    
+    # except ConnectionError as exc:
+    #     print(exc)
+        
+    # Something else went wrong
     except Exception as exc:
-        print(f"Code failed because {exc}")
         raise exc
