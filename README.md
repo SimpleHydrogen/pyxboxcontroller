@@ -5,6 +5,9 @@ This module allows for accessing the current state of a connected Xbox controlle
 Simply install using pip
 `pip install pyxboxcontroller`
 
+## Importing
+`from pyxboxcontroller import XboxController, XboxControllerState`
+
 ## Connect to controller
 Connect to the controller with id (starting at 0) using:
 `controller = XboxController(id)`
@@ -22,5 +25,5 @@ x_pressed:bool = state.x
 lb_pressed:bool = state.lb
 ```
 
-Alternately the state of the button e.g. x can be gotten with:
+Alternately the state of the button (e.g. x) can be gotten with:
 ` button_pressed:bool = state.buttons["x"]`
