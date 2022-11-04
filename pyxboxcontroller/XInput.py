@@ -18,7 +18,7 @@ class XINPUT_GAMEPAD(ctypes.Structure):
         ('r_thumb_x', ctypes.c_short),
         ('r_thumb_y', ctypes.c_short),
         ]
-    
+
 class XINPUT_STATE(ctypes.Structure):
     _fields_ = [
         ('packet_number', ctypes.c_ulong),
@@ -26,8 +26,9 @@ class XINPUT_STATE(ctypes.Structure):
     ]
 
 class Codes:
-        NOT_CONNECTED = 1167
-        SUCCESS = 0
+    """XInput Communication codes"""
+    NOT_CONNECTED = 1167
+    SUCCESS = 0
         
 def GetState(id:int, state:XINPUT_STATE) -> Codes:
     return XINPUT_DLL.XInputGetState(id, ctypes.byref(state))
