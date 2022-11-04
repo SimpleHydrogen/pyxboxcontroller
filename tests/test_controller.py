@@ -23,6 +23,25 @@ def test_XboxController() -> None:
     assert isinstance(state , XboxControllerState)
     print(state)
 
+    state.a
+    state.b
+    state.x
+    state.y
+    state.lb
+    state.rb
+    state.l_thumb_x
+    state.l_thumb_y
+    state.r_trigger
+    state.l_trigger
+    state.dpad_up
+    state.dpad_down
+    state.dpad_left
+    state.dpad_right
+    state.l3
+    state.r3
+    state.packet_number
+    state.select
+    state.start
 
 if __name__ == "__main__":
     test_default_state()
