@@ -28,66 +28,67 @@ class XboxControllerState:
 
     # Button map represents the bitmasks for accessing each button encoded in gamepad.buttons.
     # See https://learn.microsoft.com/en-us/windows/win32/api/xinput/ns-xinput-xinput_gamepad
-    _BUTTON_MAP:dict[str, int] = {
+    _BUTTON_MAP: dict[str, int] = {
         "dpad_up" : 1,
         "dpad_down" : 2,
         "dpad_left" : 4,
         "dpad_right" : 8,
         "start" : 16,
-        "select": 32,
+        "select" : 32,
         "l3" : 64,
         "r3" : 128,
-        "lb": 256,
+        "lb" : 256,
         "rb" : 512,
-        "a":4096,
-        "b":8192,
-        "x":16384,
-        "y":32768,
+        "a" : 4096,
+        "b" : 8192,
+        "x" : 16384,
+        "y" : 32768,
     }
 
-    def __init__(self, state:XInput.XINPUT_STATE):
+    def __init__(self, state: XInput.XINPUT_STATE):
         # Get gamepad struct from XInput state
-        self.packet_number:int = state.packet_number
-        gamepad:XInput.XINPUT_GAMEPAD = state.gamepad
+        self.packet_number: int = state.packet_number
+        gamepad: XInput.XINPUT_GAMEPAD = state.gamepad
 
         # # NOTE FOR DEBUG
         # if buttons not in self.BUTTON_MAP.values():
         #     print(f"Unknown button or combination: {buttons}")
 
         # Get states of each button
-        self.buttons:dict[str,bool] = {btn : self._get_button_state(btn, gamepad.buttons) 
-                                        for btn in self._BUTTON_MAP}
+        self.buttons: dict[str,bool] = {
+            btn : self._get_button_state(btn, gamepad.buttons) 
+            for btn in self._BUTTON_MAP}
 
         # Thumbsticks
         # TODO add deadzone checking
         # round to 4 decimal places
         # rounding ignores the error with converting signed 32-bit int to float
         # (-32768 to 32767) to (-1.0 to 1.0)
-        self.l_thumb_x:float = round(gamepad.l_thumb_x / 32767., 4)
-        self.l_thumb_y:float = round(gamepad.l_thumb_y / 32767., 4)
-        self.r_thumb_x:float = round(gamepad.r_thumb_x / 32767., 4)
-        self.r_thumb_y:float = round(gamepad.r_thumb_y / 32767., 4)
+        self.l_thumb_x: float = round(gamepad.l_thumb_x / 32767., 4)
+        self.l_thumb_y: float = round(gamepad.l_thumb_y / 32767., 4)
+        self.r_thumb_x: float = round(gamepad.r_thumb_x / 32767., 4)
+        self.r_thumb_y: float = round(gamepad.r_thumb_y / 32767., 4)
 
         # Triggers
-        self.l_trigger:float = round(gamepad.left_trigger / 255., 4)
-        self.r_trigger:float = round(gamepad.right_trigger / 255., 4)
+        self.l_trigger: float = round(gamepad.left_trigger / 255., 4)
+        self.r_trigger: float = round(gamepad.right_trigger / 255., 4)
 
     @classmethod
     def default_state(cls):
         """Returns a default state of XboxControllerState"""
         class XInputSpoofState:
             """Spoof an XInput state packet"""
-            packet_number:int = -1
+            packet_number: int = -1
             class gamepad:
-                buttons:int = 0
-                l_thumb:float = 0.
-                l_thumb_x:float = 0.
-                l_thumb_y:float = 0.
-                r_thumb:float = 0.
-                r_thumb_x:float = 0.
-                r_thumb_y:float = 0.
-                left_trigger:float = 0.
-                right_trigger:float = 0.
+                buttons: int = 0
+                l_thumb: float = 0.
+                l_thumb_x: float = 0.
+                l_thumb_y: float = 0.
+                r_thumb: float = 0.
+                r_thumb_x: float = 0.
+                r_thumb_y: float = 0.
+                left_trigger: float = 0.
+                right_trigger: float = 0.
         return cls(XInputSpoofState()) 
 
     def __repr__(self) -> str:
@@ -100,11 +101,11 @@ class XboxControllerState:
     Right trigger: {self.r_trigger}
     """
 
-    def _get_button_state(self, button:str, buttons:int) -> bool:
+    def _get_button_state(self, button: str, buttons: int) -> bool:
         """Returns True or False if the given button was pressed.
         bitwise and (&) of the bitmask and gamepad.buttons number"""
-        mask:int = self._BUTTON_MAP[button]
-        pressed:bool = (mask & buttons) != 0
+        mask: int = self._BUTTON_MAP[button]
+        pressed: bool = (mask & buttons) != 0
         return pressed
 
     # Thumbstick getter
@@ -198,11 +199,11 @@ class XboxController:
     # Rumble
     # Battery info
 
-    def __init__(self, controller_id:int):
+    def __init__(self, controller_id: int):
         self.id = controller_id
         self._state = XInput.XINPUT_STATE()
-        self._last_packet_number:int = -1
-        self._last_state:XboxControllerState = XboxControllerState.default_state()
+        self._last_packet_number: int = -1
+        self._last_state: XboxControllerState = XboxControllerState.default_state()
 
     @property
     def state(self) -> XboxControllerState:
@@ -227,7 +228,7 @@ class XboxController:
                 raise RuntimeError(f"Unknown error {res} \
                                    attempting to get state of device {self.id}", exc)
 
-        packet_number = self._state.packet_number  # Get current packet number
+        packet_number: int = self._state.packet_number  # Get current packet number
 
         # No packets from controller since last call
         if packet_number == self._last_packet_number:
@@ -235,8 +236,10 @@ class XboxController:
 
         # Convert XInput state struct into sensible response
         new_state = XboxControllerState(self._state)
+
         # Recall latest packet
         self._last_packet_number, self._last_state = packet_number, new_state
+        
         return new_state
 
     @property
