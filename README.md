@@ -27,3 +27,10 @@ lb_pressed: bool = state.lb
 
 Alternately the state of the button (e.g. x) can be gotten with:
 ` button_pressed: bool = state.buttons["x"]`
+
+## Examples
+To see this code in action, why not try out:
+```python
+from pyxboxcontroller.examples import example_state_gui
+example_state_gui()
+```

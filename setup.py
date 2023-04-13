@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.6.2"
+VERSION = "0.6.3"
 DESCRIPTION = 'Allows simple access to the current state of connected Xbox controllers on Windows.'
 
 setup(name='pyxboxcontroller',

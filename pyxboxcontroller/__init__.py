@@ -1,3 +1,4 @@
 from pyxboxcontroller.controller import XboxController, XboxControllerState
+import pyxboxcontroller.examples
 
-__all__ = ["controller"]
+__all__ = ["controller", "examples"]
