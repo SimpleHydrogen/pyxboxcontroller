@@ -6,8 +6,10 @@ http://msdn.microsoft.com/en-gb/library/windows/desktop/ee417001%28v=vs.85%29.as
 - Dan Forbes - Mid October 2022
 """
 from functools import cache
+from enum import IntEnum
 
 from pyxboxcontroller import XInput
+
 
 class XboxControllerState:
     """
@@ -29,20 +31,20 @@ class XboxControllerState:
     # Button map represents the bitmasks for accessing each button encoded in gamepad.buttons.
     # See https://learn.microsoft.com/en-us/windows/win32/api/xinput/ns-xinput-xinput_gamepad
     _BUTTON_MAP: dict[str, int] = {
-        "dpad_up" : 1,
-        "dpad_down" : 2,
-        "dpad_left" : 4,
-        "dpad_right" : 8,
-        "start" : 16,
-        "select" : 32,
-        "l3" : 64,
-        "r3" : 128,
-        "lb" : 256,
-        "rb" : 512,
-        "a" : 4096,
-        "b" : 8192,
-        "x" : 16384,
-        "y" : 32768,
+        "dpad_up": 1,
+        "dpad_down": 2,
+        "dpad_left": 4,
+        "dpad_right": 8,
+        "start": 16,
+        "select": 32,
+        "l3": 64,
+        "r3": 128,
+        "lb": 256,
+        "rb": 512,
+        "a": 4096,
+        "b": 8192,
+        "x": 16384,
+        "y": 32768,
     }
 
     def __init__(self, state: XInput.XINPUT_STATE):
@@ -55,8 +57,8 @@ class XboxControllerState:
         #     print(f"Unknown button or combination: {buttons}")
 
         # Get states of each button
-        self.buttons: dict[str,bool] = {
-            btn : self._get_button_state(btn, gamepad.buttons) 
+        self.buttons: dict[str, bool] = {
+            btn : self._get_button_state(btn, gamepad.buttons)
             for btn in self._BUTTON_MAP}
 
         # Thumbsticks
@@ -89,7 +91,7 @@ class XboxControllerState:
                 r_thumb_y: float = 0.
                 left_trigger: float = 0.
                 right_trigger: float = 0.
-        return cls(XInputSpoofState()) 
+        return cls(XInputSpoofState())
 
     def __repr__(self) -> str:
         return f"""
@@ -110,11 +112,11 @@ class XboxControllerState:
 
     # Thumbstick getter
     @property
-    def l_thumb(self) -> tuple[float,float]:
+    def l_thumb(self) -> tuple[float, float]:
         """Returns the state of (X,Y) for the left thumbstick"""
         return (self.l_thumb_x, self.l_thumb_y)
     @property
-    def r_thumb(self) -> tuple[float,float]:
+    def r_thumb(self) -> tuple[float, float]:
         """Returns the state of (X,Y) for the right thumbstick"""
         return (self.r_thumb_x, self.r_thumb_y)
 
@@ -171,9 +173,60 @@ class XboxControllerState:
     @property
     @cache
     # Default buttons dict
-    def buttons(cls) -> dict[str,bool]:
+    def buttons(cls) -> dict[str, bool]:
         """dict containing current state of buttons"""
         return {btn:False for btn in cls._BUTTON_MAP}
+
+
+class BatteryLevel(IntEnum):
+    """Different battery levels.\n
+    EMPTY = 0, LOW = 1, MEDIUM = 2, FULL = 3"""
+    EMPTY = 0
+    LOW = 1
+    MEDIUM = 2
+    FULL = 3
+
+    def __str__(self) -> str:
+        return self.name
+
+class BatteryType(IntEnum):
+    """Different battery types"""
+    DISCONNECTED = 0
+    WIRED = 1
+    ALKALINE = 2
+    NIMH = 3  # nickel metal hydride
+    UNKNOWN = 255
+
+
+class XboxBatteryInfo:
+    """
+    Parses an XInputBatteryInformation Struct into a sensible representation.\n
+
+    Access the battery type with:  \n
+    >>> battery_type: BatteryType = battery_info.battery_type
+
+    Check the charge level like:  \n
+    >>> level: BatteryLevel = battery_info.battery_level
+    """
+
+    def __init__(self, battery_info: XInput.XINPUT_BATTERY_INFORMATION) -> None:
+        self.battery_type: BatteryType = BatteryType(battery_info.battery_type)
+        self.level: BatteryLevel = BatteryLevel(battery_info.battery_level)
+
+    @classmethod
+    def default_state(cls):
+        """Returns a default state of XboxBatteryInfo"""
+        class XInputSpoofBatteryInfo:
+            """Spoof an XInput battery info packet"""
+            battery_type = BatteryType.DISCONNECTED
+            battery_level = BatteryLevel.EMPTY
+        return cls(XInputSpoofBatteryInfo())
+
+    def __repr__(self) -> str:
+        return f"""
+    Battery level: {self.level.name},
+    Battery type: {self.battery_type.name}
+    """
 
 
 class XboxController:
@@ -185,11 +238,23 @@ class XboxController:
     Try id=0 to connect to the 1st controller connected\n
 
     The state of the controller is given by:
-    >>> state = my_controller.state
-    state is an XboxControllerState object
+    >>> state: XboxControllerState = my_controller.state
 
     The state of a button (e.g. "x") for that given state can be gotten with:
-    >>> x_pressed:bool = state.x
+    >>> x_pressed: bool = state.x
+
+    You can get the charge level of the battery with:
+    >>> level: BatteryLevel = my_controller.battery_level
+
+    BatteryLevel can be used as an int with values between 0-3,
+    with 0 representing empty, and 3 representing full.
+
+    In practice, you can check if the battery is low with:
+    >>> if my_controller.battery_level < BatteryLevel.MEDIUM:
+            ...
+
+    The complete battery information can be gotten with:
+    >>> battery_info: XboxBatteryInfo = my_controller.battery_info
 
     Raises a RuntimeError when communication with controller fails.
     """
@@ -197,11 +262,14 @@ class XboxController:
     # TODO
     # Deadzones
     # Rumble
-    # Battery info
+
+    # Specifies this is a controller for getting battery info
+    _battery_device_type: int = 0
 
     def __init__(self, controller_id: int):
         self.id = controller_id
         self._state = XInput.XINPUT_STATE()
+        self._battery_info = XInput.XINPUT_BATTERY_INFORMATION()
         self._last_packet_number: int = -1
         self._last_state: XboxControllerState = XboxControllerState.default_state()
 
@@ -210,25 +278,13 @@ class XboxController:
         """Get the current state of the controller"""
 
         # Get controller state from XInput
-        # res = XInput.XINPUT_DLL.XInputGetState(self.id, ctypes.byref(self._state))
         res = XInput.GetState(self.id, self._state)
 
         # Handle response from XInput
-        match res:
+        self.handle_response_code(res, current_action="get state")
 
-            case XInput.Codes.NOT_CONNECTED:
-                exc = ConnectionError(f"No controller connected with id: {self.id}, \
-                                    last packet id: {self._last_packet_number}")
-                raise exc
-
-            case XInput.Codes.SUCCESS:
-                pass
-
-            case _ as exc:
-                raise RuntimeError(f"Unknown error {res} \
-                                   attempting to get state of device {self.id}", exc)
-
-        packet_number: int = self._state.packet_number  # Get current packet number
+        # Get current packet number
+        packet_number: int = self._state.packet_number
 
         # No packets from controller since last call
         if packet_number == self._last_packet_number:
@@ -239,10 +295,52 @@ class XboxController:
 
         # Recall latest packet
         self._last_packet_number, self._last_state = packet_number, new_state
-        
+
         return new_state
 
     @property
-    def battery(self) -> float:
-        """TODO Returns the current battery level as a float. 0. = empty, 1. = full"""
-        raise NotImplementedError("Not yet implemented, check back later...")
+    def battery_info(self) -> XboxBatteryInfo:
+        """Get the battery information of the controller"""
+        response = XInput.GetBatteryInformation(
+            self.id,
+            self._battery_device_type,
+            self._battery_info)
+
+        # Handle response from XInput
+        self.handle_response_code(response, "get battery info")
+
+        # Convert the XInput struct into a sensible response
+        battery_info = XboxBatteryInfo(self._battery_info)
+
+        return battery_info
+
+    @property
+    def battery_level(self) -> BatteryLevel:
+        """Get the current charge level of the battery.
+        BatteryLevel can be used as an int, with values between 0 and 3,
+        representing empty and full respectively."""
+        return self.battery_info.level
+
+    def handle_response_code(
+            self,
+            xinput_response_code: XInput.Codes,
+            current_action: str
+            ) -> None:
+        """Check the XInput response code,
+        raises the appropriate error if the function didn't succeed"""
+        match xinput_response_code:
+
+            case XInput.Codes.SUCCESS:
+                pass
+
+            case XInput.Codes.NOT_CONNECTED:
+                exc = ConnectionError(
+                    (f"No controller connected with id: {self.id},"
+                     f"last packet id: {self._last_packet_number}"))
+                raise exc
+
+            case _ as exc:
+                raise RuntimeError(
+                    (f"Unknown error {xinput_response_code}"
+                     f"attempting to {current_action} of device {self.id}"),
+                    exc)
