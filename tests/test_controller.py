@@ -1,4 +1,6 @@
-import os, sys
+# Ensure pyxboxcontroller is discoverable on PATH
+import os
+import sys
 sys.path.append(os.path.dirname(__name__))
 
 
@@ -16,6 +18,7 @@ def test_default_state() -> None:
 
 
 def test_XboxController() -> None:
+    """Test XboxControllerState produced by XboxController.state"""
     from pyxboxcontroller import XboxController, XboxControllerState
 
     controller = XboxController(0)
@@ -47,7 +50,7 @@ def test_XboxController() -> None:
 
 
 def test_XboxBatteryInfo():
-    # Connect to conttoller
+    """Test BatteryInfo functionality"""
     from pyxboxcontroller import XboxController, XboxBatteryInfo
 
     controller = XboxController(0)
