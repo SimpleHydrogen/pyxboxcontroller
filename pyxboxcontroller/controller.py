@@ -57,12 +57,10 @@ class XboxControllerState:
         #     print(f"Unknown button or combination: {buttons}")
 
         # Get states of each button
-        self.buttons: dict[str, bool] = {
-            btn : self._get_button_state(btn, gamepad.buttons)
-            for btn in self._BUTTON_MAP}
+        self.buttons: dict[str, bool] = self._get_button_states(gamepad.buttons)
 
         # Thumbsticks
-        # TODO add deadzone checking
+        # TODO add deadzones
         # round to 4 decimal places
         # rounding ignores the error with converting signed 32-bit int to float
         # (-32768 to 32767) to (-1.0 to 1.0)
@@ -81,6 +79,7 @@ class XboxControllerState:
         class XInputSpoofState:
             """Spoof an XInput state packet"""
             packet_number: int = -1
+
             class gamepad:
                 buttons: int = 0
                 l_thumb: float = 0.
@@ -94,14 +93,13 @@ class XboxControllerState:
         return cls(XInputSpoofState())
 
     def __repr__(self) -> str:
-        return f"""
-    Packet number:{self.packet_number},
-    Buttons:{self.buttons},
-    Left thumbstick: {(self.l_thumb_x, self.l_thumb_y)},
-    Right thumbstick: {(self.r_thumb_x, self.r_thumb_y)},
-    Left trigger: {self.l_trigger}, 
-    Right trigger: {self.r_trigger}
-    """
+        return (
+            f"Packet number:{self.packet_number}\n"
+            f"Buttons:{self.buttons}\n"
+            f"Left thumbstick: {(self.l_thumb_x, self.l_thumb_y)}\n"
+            f"Right thumbstick: {(self.r_thumb_x, self.r_thumb_y)}\n"
+            f"Left trigger: {self.l_trigger}\n"
+            f"Right trigger: {self.r_trigger}")
 
     def _get_button_state(self, button: str, buttons: int) -> bool:
         """Returns True or False if the given button was pressed.
@@ -109,6 +107,14 @@ class XboxControllerState:
         mask: int = self._BUTTON_MAP[button]
         pressed: bool = (mask & buttons) != 0
         return pressed
+
+    def _get_button_states(self, gamepad_buttons: int) -> dict[str, bool]:
+        """Returns a dict with True or False for each button.
+        The value will be True if the button was pressed.
+        bitwise and (&) of the bitmask and gamepad.buttons number"""
+        return {
+            btn: (bitmask & gamepad_buttons) != 0
+            for btn, bitmask in self._BUTTON_MAP.items()}
 
     # Thumbstick getter
     @property
@@ -120,6 +126,7 @@ class XboxControllerState:
         """Returns the state of (X,Y) for the right thumbstick"""
         return (self.r_thumb_x, self.r_thumb_y)
 
+    # Triggers
     @property
     def triggers(self) -> tuple[float, float]:
         """Returns the position of triggers (L,R)"""
@@ -174,8 +181,8 @@ class XboxControllerState:
     @cache
     # Default buttons dict
     def buttons(cls) -> dict[str, bool]:
-        """dict containing current state of buttons"""
-        return {btn:False for btn in cls._BUTTON_MAP}
+        """dict representing the current state of buttons"""
+        return {btn: False for btn in cls._BUTTON_MAP}
 
 
 class BatteryLevel(IntEnum):
@@ -187,7 +194,8 @@ class BatteryLevel(IntEnum):
     FULL = 3
 
     def __str__(self) -> str:
-        return self.name
+        return f"Battery Level: {self.name}"
+
 
 class BatteryType(IntEnum):
     """Different battery types"""
@@ -223,10 +231,9 @@ class XboxBatteryInfo:
         return cls(XInputSpoofBatteryInfo())
 
     def __repr__(self) -> str:
-        return f"""
-    Battery level: {self.level.name},
-    Battery type: {self.battery_type.name}
-    """
+        return (
+            f"Battery level: {self.level.name}\n"
+            f"Battery type: {self.battery_type.name}")
 
 
 class XboxController:
@@ -264,7 +271,7 @@ class XboxController:
     # Rumble
 
     # Specifies this is a controller for getting battery info
-    _battery_device_type: int = 0
+    device_type = XInput.DeviceTypes.GAMEPAD
 
     def __init__(self, controller_id: int):
         self.id = controller_id
@@ -303,7 +310,7 @@ class XboxController:
         """Get the battery information of the controller"""
         response = XInput.GetBatteryInformation(
             self.id,
-            self._battery_device_type,
+            self.device_type,
             self._battery_info)
 
         # Handle response from XInput

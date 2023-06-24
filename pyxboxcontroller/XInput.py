@@ -4,6 +4,7 @@ C_Structs and other objects for communicating with XInput DLL.
 - Dan Forbes - Mid October 2022
 """
 import ctypes
+from enum import IntEnum
 
 # Get link to XInput library
 XINPUT_DLL = ctypes.windll.xinput1_4
@@ -39,13 +40,19 @@ class Codes:
     SUCCESS = 0
 
 
+class DeviceTypes(IntEnum):
+    """XInput devType"""
+    GAMEPAD = 0
+    HEADSET = 1
+
+
 def GetState(id: int, state: XINPUT_STATE) -> Codes:
     return XINPUT_DLL.XInputGetState(id, ctypes.byref(state))
 
 
 def GetBatteryInformation(
         id: int,
-        device_type: int,
+        device_type: DeviceTypes,
         battery_state: XINPUT_BATTERY_INFORMATION
         ) -> Codes:
     return XINPUT_DLL.XInputGetBatteryInformation(

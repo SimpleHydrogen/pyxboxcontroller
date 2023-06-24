@@ -1,15 +1,15 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.7.1"
-DESCRIPTION = 'Allows simple access to the current state of connected Xbox controllers on Windows.'
+VERSION = "0.7.3"
+DESCRIPTION = "Allows simple access to the current state of connected Xbox controllers on Windows."
 
-setup(name='pyxboxcontroller',
+setup(name="pyxboxcontroller",
     version = VERSION,
     description = DESCRIPTION,
     license = "MIT",
-    author = 'Dan Forbes',
-    author_email = 'danielforbes.123412@gmail.com',
-    url = 'https://github.com/SimpleHydrogen/pyxboxcontroller',
+    author = "Dan Forbes",
+    author_email = "danielforbes.123412@gmail.com",
+    url = "https://github.com/SimpleHydrogen/pyxboxcontroller",
     packages = find_packages(),
     keywords = ["xbox controller",
                 "XInput",
